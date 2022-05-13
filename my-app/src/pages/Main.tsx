@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { GET_LAUNCHES } from '../client/query';
@@ -36,13 +36,18 @@ export const Main = () => {
             sort: "launch_year",
             order: "desc"
         },
-        onCompleted(_data) {
-            setLaunches(_data.launchesPastResult.data)
-        },
         onError() {
             setIsError(true)
-        }
+        },
     })
+
+    //Normally I would use onCompleted to set this, but I
+    //found that the way I've been writing my tests
+    //is either bugged or not compatible with the latest release!
+    useEffect(() => {
+        //always play it safe with state in hooks
+        setLaunches(launchesPastResult?.data || [])
+    }, [launchesPastResult])
 
     const TableRows = () => {
         return (
@@ -65,7 +70,6 @@ export const Main = () => {
         const filteredResults = launchesPastResult?.data.filter(launch => launch.launch_success === launchSuccess)
         setFilterTerm(launchSuccess)
         setLaunches(filteredResults || [])
-        console.log(filteredResults)
     }
 
     //shortcut to sort. by utilizing the fact that the query can be sorted initially
@@ -75,11 +79,15 @@ export const Main = () => {
     }
 
     if (loading) {
-        return <p>Loading...</p>
+        return <p data-testid="loading-indicator">Loading...</p>
     }
 
     if (isError) {
         return <p>Houston we have a problem</p>
+    }
+
+    if (!Boolean(launchesPastResult?.data.length)) {
+        return <p>No launches found.</p>
     }
 
     return (
